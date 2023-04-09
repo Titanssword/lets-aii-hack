@@ -51,5 +51,5 @@ export default async function (req, res) {
 function generatePrompt(userInput) {
   // const capitalizedAnimal =
   //   animal[0].toUpperCase() + animal.slice(1).toLowerCase();
-  return `give me 3 words`;
+  return `give me 3 words based on the following theme: ${userInput}`;
 }
