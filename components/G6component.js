@@ -6,7 +6,38 @@ const G6component = () => {
   const ref = React.useRef(null);
   let graph = null;
 
-const [selectedNodeID, setSelectedNodeID] = useState("");
+  // const [result, setResult] = useState();
+
+  async function onSubmit() {
+    //   event.preventDefault();
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ input: "xxx" }),
+      });
+
+      const data = await response.json();
+      if (response.status !== 200) {
+        throw (
+          data.error ||
+          new Error(`Request failed with status ${response.status}`)
+        );
+      }
+
+      // setResult(data.result);
+      console.log(data.result.replace(/^\s+/, "").split(", "));
+      // const result = data.result;
+      const result = data.result.split(", ");
+      handleExtend(result);
+    } catch (error) {
+      // Consider implementing your own error handling logic here
+      console.error(error);
+      alert(error.message);
+    }
+  }
 
   const { Util } = G6;
 
@@ -25,10 +56,15 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
               cfg.label
             }</text>
             <text style={{ marginLeft: ${
-              width - 16
+              width - 8
             }, marginTop: -20, stroke: '#66ccff', fill: '#000', cursor: 'pointer', opacity: ${
           cfg.hover ? 0.75 : 0
         } }} action="add">+</text>
+        <text style={{ marginLeft: ${
+          width - 4
+        }, marginTop: -10, stroke: '#66ccff', fill: '#000', cursor: 'pointer', opacity: ${
+          cfg.hover ? 0.75 : 0
+        }, next: 'inline' }} action="delete">-</text>
           </rect>
         </group>
       `;
@@ -64,12 +100,6 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
             }, marginTop: -10, stroke: ${color}, fill: '#000', cursor: 'pointer', opacity: ${
           cfg.hover ? 0.75 : 0
         }, next: 'inline' }} action="add">+</text>
-
-        <text style={{ marginLeft: ${
-          width - 4
-        }, marginTop: -10, stroke: ${color}, fill: '#000', cursor: 'pointer', opacity: ${
-          cfg.hover ? 0.75 : 0
-        }, next: 'inline' }} action="active">=</text>
 
           </rect>
           <rect style={{ fill: ${color}, width: ${
@@ -143,36 +173,17 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
     clickNode(evt) {
       const model = evt.item.get("model");
       const name = evt.target.get("action");
+      const graph = this.graph;
+      graph.getNodes().forEach((node) => {
+        graph.clearItemStates(node, ["selected"]);
+      });
+      graph.setItemState(model.id, "selected", true);
+      const selected = graph.findAllByState("node", "selected");
+      console.log(selected);
       switch (name) {
-        case "active":
-            setSelectedNodeID(model.id);
-        //   const gptId =
-        //     model.id +
-        //     "-" +
-        //     (((model.children || []).reduce((a, b) => {
-        //       const num = Number(b.id.split("-").pop());
-        //       return a < num ? num : a;
-        //     }, 0) || 0) +
-        //       1);
-        //   evt.currentTarget.updateItem(evt.item, {
-        //     children: (model.children || []).concat([
-        //       {
-        //         id: gptId,
-        //         direction:
-        //           gptId.charCodeAt(gptId.length - 1) % 2 === 0
-        //             ? "right"
-        //             : "left",
-        //         label: "New",
-        //         type: "dice-mind-map-leaf",
-        //         color:
-        //           model.color ||
-        //           colorArr[Math.floor(Math.random() * colorArr.length)],
-        //       },
-        //     ]),
-        //   });
-        //   evt.currentTarget.layout(false);
-          break;
         case "add":
+          console.log(evt.item);
+          console.log(graph);
           const newId =
             model.id +
             "-" +
@@ -216,57 +227,56 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
     },
     editNode(evt) {
       const item = evt.item;
-      const model = item.get("model");
-      const { x, y } = item.calculateBBox();
+      const model = item.get('model');
+      const {
+        x,
+        y
+      } = item.calculateBBox();
       const graph = evt.currentTarget;
       const realPosition = evt.currentTarget.getClientByPoint(x, y);
-      const el = document.createElement("div");
+      const el = document.createElement('div');
       const fontSizeMap = {
-        "dice-mind-map-root": 24,
-        "dice-mind-map-sub": 18,
-        "dice-mind-map-leaf": 16,
+        'dice-mind-map-root': 16,
+        'dice-mind-map-sub': 12,
+        'dice-mind-map-leaf': 12,
       };
-      el.style.fontSize = fontSizeMap[model.type] + "px";
-      el.style.position = "fixed";
-      el.style.top = realPosition.y + "px";
-      el.style.left = realPosition.x + "px";
-      el.style.paddingLeft = "12px";
-      el.style.transformOrigin = "top left";
+      el.style.fontSize = fontSizeMap[model.type] + 'px';
+      el.style.position = 'fixed';
+      el.style.top = realPosition.y + 'px';
+      el.style.left = realPosition.x + 'px';
+      el.style.paddingLeft = '12px';
+      el.style.paddingTop = '12px';
+      el.style.transformOrigin = 'top left';
       el.style.transform = `scale(${evt.currentTarget.getZoom()})`;
-      const input = document.createElement("input");
-      input.style.border = "none";
+      const input = document.createElement('input');
+      input.style.border = 'none';
       input.value = model.label;
-      input.style.width =
-        Util.getTextSize(model.label, fontSizeMap[model.type])[0] + "px";
-      input.className = "dice-input";
-      el.className = "dice-input";
+      input.style.width = Util.getTextSize(model.label, fontSizeMap[model.type])[0] + 'px';
+      input.className = 'dice-input';
+      el.className = 'dice-input';
       el.appendChild(input);
       document.body.appendChild(el);
       const destroyEl = () => {
         document.body.removeChild(el);
       };
       const clickEvt = (event) => {
-        if (
-          event.target &&
-          event.target.classList &&
-          typeof event.target.classList.contains === "function" &&
-          event.target.classList.contains("dice-input")
-        ) {
-          window.removeEventListener("mousedown", clickEvt);
-          window.removeEventListener("scroll", clickEvt);
+        if (!(event.target && event.target.classList.contains('dice-input'))) {
+
+          window.removeEventListener('mousedown', clickEvt);
+          window.removeEventListener('scroll', clickEvt);
           graph.updateItem(item, {
             label: input.value,
           });
           graph.layout(false);
-          graph.off("wheelZoom", clickEvt);
+          graph.off('wheelZoom', clickEvt);
           destroyEl();
         }
       };
-      graph.on("wheelZoom", clickEvt);
-      window.addEventListener("mousedown", clickEvt);
-      window.addEventListener("scroll", clickEvt);
-      input.addEventListener("keyup", (event) => {
-        if (event.key === "Enter") {
+      graph.on('wheelZoom', clickEvt);
+      window.addEventListener('mousedown', clickEvt);
+      window.addEventListener('scroll', clickEvt);
+      input.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
           clickEvt({
             target: {},
           });
@@ -384,43 +394,54 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
 
   let treeData = {
     id: "root",
-    label: "Root",
+    label: "请输入你想要发散的主题",
     children: [
-      {
-        id: "SubTreeNode1",
-        label: "subroot1",
-        children: [
-          {
-            id: "SubTreeNode1.1",
-            label: "subroot1.1",
-          },
-        ],
-      },
-      {
-        id: "SubTreeNode2",
-        label: "subroot2",
-        children: [
-          {
-            id: "SubTreeNode2.1",
-            label: "subroot2.1",
-          },
-          {
-            id: "SubTreeNode2.2",
-            label: "subroot2.2",
-          },
-        ],
-      },
+    //   {
+    //     id: "SubTreeNode1",
+    //     label: "subroot1",
+    //     children: [
+    //       {
+    //         id: "SubTreeNode1.1",
+    //         label: "subroot1.1",
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     id: "SubTreeNode2",
+    //     label: "subroot2",
+    //     children: [
+    //       {
+    //         id: "SubTreeNode2.1",
+    //         label: "subroot2.1",
+    //       },
+    //       {
+    //         id: "SubTreeNode2.2",
+    //         label: "subroot2.2",
+    //       },
+    //     ],
+    //   },
     ],
   };
 
-  useEffect(()=>{
-    console.log(selectedNodeID)
-  },[selectedNodeID])
+
+  //   useEffect(() => {
+  //     if (result) {
+  //         console.log(graph);
+  //     handleExtend();
+  //     }
+  //   }, [result]);
+
+  // useEffect(() => {
+  //   if (graph && result) {
+  //     handleExtend();
+  //   }
+  //   console.log(graph);
+  // }, [graph]);
 
   useEffect(() => {
     if (!graph) {
       graph = new G6.TreeGraph({
-        container: ReactDOM.findDOMNode(ref.current),
+        container: ref.current,
         width: "100%",
         height: "100%",
         renderer: "svg",
@@ -437,6 +458,19 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
             stroke: "#A3B1BF",
           },
         },
+        nodeStateStyles: {
+          hover: {
+            stroke: "#1890FF",
+            lineWidth: 2,
+            fill: "#000000A6",
+          },
+          selected: {
+            stroke: "#00ffff",
+            lineWidth: 2,
+            fill: "#000000A6",
+          },
+        },
+
         defaultNode: {
           shape: "rect",
           labelCfg: {
@@ -481,19 +515,62 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
         // },
       });
     }
+
     graph.data(dataTransform(treeData));
     graph.render();
-    graph.fitView();
+    // graph.fitView();
   }, []);
 
   const handleChangeData = () => {
-    const node = graph.findById("SubTreeNode1");
-    graph.updateItem(node, {
+    const selected = graph.findAllByState("node", "selected")[0];
+    graph.updateItem(selected, {
       label: "xxx",
       style: {
         fill: "red",
       },
     });
+  };
+
+  const handleExtend = (result) => {
+    /// extend mind map
+    const selected = graph.findAllByState("node", "selected")[0];
+    // const node = graph.findById("SubTreeNode2");
+    const model = selected.getModel();
+    console.log(selected);
+    // console.log(node);
+    result.map((res, index) => {
+      const newId =
+        model.id +
+        "-" +
+        (((model.children || []).reduce((a, b) => {
+          const num = Number(b.id.split("-").pop());
+          return a < num ? num : a;
+        }, 0) || 0) +
+          index +
+          1);
+      graph.updateItem(selected, {
+        children: (model.children || []).concat([
+          {
+            id: newId,
+            direction:
+              newId.charCodeAt(newId.length - 1) % 2 === 0 ? "right" : "left",
+            label: res,
+            type: "dice-mind-map-leaf",
+            color:
+              model.color ||
+              colorArr[Math.floor(Math.random() * colorArr.length)],
+          },
+        ]),
+      });
+    });
+    graph.layout(false);
+
+    // graph.updateItem(node, {
+    //   label: "xxx",
+    //   style: {
+    //     fill: "red",
+    //   },
+    // });
   };
 
   return (
@@ -504,6 +581,10 @@ const [selectedNodeID, setSelectedNodeID] = useState("");
       <button onClick={handleChangeData} className="bottom-0 absolute p-4">
         更新数据源
       </button>
+      <button onClick={onSubmit} className="bottom-8 absolute p-4">
+        Extend
+      </button>
+      {/* <div className="bottom-16 absolute p-4">{result}</div> */}
     </div>
   );
 };

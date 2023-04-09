@@ -11,7 +11,7 @@ const G6component = dynamic(
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
-  const [animalInput, setAnimalInput] = useState("");
+  const [userInput, setUserInput] = useState("");
   const [result, setResult] = useState();
   const [collapsed, setSidebarCollapsed] = useState(false);
 
@@ -23,7 +23,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ animal: animalInput }),
+        body: JSON.stringify({ input: userInput }),
       });
 
       const data = await response.json();
@@ -35,7 +35,7 @@ export default function Home() {
       }
 
       setResult(data.result);
-      setAnimalInput("");
+      setUserInput("");
     } catch (error) {
       // Consider implementing your own error handling logic here
       console.error(error);
@@ -50,7 +50,7 @@ export default function Home() {
       {/* <div className="absolute w-1/4 max-h-[640px] right-[4vw] top-1/2 -translate-y-1/2 h-full bg-slate-50">detail area</div> */}
       <div className="w-full items-center justify-between font-mono text-sm flex">
         <p className="left-0 top-0 flex w-full justify-center border-gray-300 bg-gradient-to-b from-gray-200 to-white/10 backdrop-blur-sm border  p-5 font-mono font-bold">
-          Copilot For Brainstorming
+          Copilot For X
         </p>
 
        
@@ -65,11 +65,11 @@ export default function Home() {
         >
           <input
             type="text"
-            name="animal"
+            name="user"
             placeholder="Enter your prompt"
-            value={animalInput}
+            value={userInput}
             className="w-full text-xl rounded-l-full px-6 focus:outline-none"
-            onChange={(e) => setAnimalInput(e.target.value)}
+            onChange={(e) => setUserInput(e.target.value)}
           />
           <input
             type="submit"
